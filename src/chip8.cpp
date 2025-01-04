@@ -1,4 +1,5 @@
 #include "chip8.h"
+#include <chrono>
 #include <fstream>
 
 // Chip8 start address is 0x200 for instructions from the ROM
@@ -28,14 +29,19 @@ uint8_t fontset[FONTSET_SIZE] = {
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-Chip8::Chip8() {
-  // Initialize program counter to the start address
+Chip8::Chip8()
+    // Initialise the random number generator with the current time
+    : randGen(std::chrono::system_clock::now().time_since_epoch().count()) {
+  // Initialise program counter to the start address
   pc = START_ADDRESS;
 
   // Load fonts into memory
   for (unsigned int i = 0; i < FONTSET_SIZE; ++i) {
     memory[FONTSET_START_ADDRESS + i] = fontset[i];
   }
+
+  // Initialise distribution which we will use with the random number generator
+  randByte = std::uniform_int_distribution<uint8_t>(0, 255U);
 }
 
 void Chip8::LoadROM(char const *filename) {

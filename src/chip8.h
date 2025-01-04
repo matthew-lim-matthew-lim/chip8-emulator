@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <random>
 
 class Chip8 {
 public:
@@ -18,4 +19,8 @@ private:
   uint8_t keypad[16]{};
   uint32_t video[64 * 32]{};
   uint16_t opcode;
+
+  // Random number generation. Used for Cxkk instruction
+  std::default_random_engine randGen;
+  std::uniform_int_distribution<uint8_t> randByte;
 };
