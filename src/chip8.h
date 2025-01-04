@@ -23,4 +23,8 @@ private:
   // Random number generation. Used for Cxkk instruction
   std::default_random_engine randGen;
   std::uniform_int_distribution<uint8_t> randByte;
+
+  // Chip8 instructions
+  // CLS
+  void OP_00E0();
 };

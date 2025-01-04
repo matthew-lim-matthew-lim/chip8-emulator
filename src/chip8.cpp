@@ -1,5 +1,6 @@
 #include "chip8.h"
 #include <chrono>
+#include <cstddef>
 #include <fstream>
 
 // Chip8 start address is 0x200 for instructions from the ROM
@@ -41,6 +42,7 @@ Chip8::Chip8()
   }
 
   // Initialise distribution which we will use with the random number generator
+  // using randByte(randGen)
   randByte = std::uniform_int_distribution<uint8_t>(0, 255U);
 }
 
@@ -67,5 +69,16 @@ void Chip8::LoadROM(char const *filename) {
 
     // Free the buffer
     delete[] buffer;
+  }
+}
+
+// Chip8 instructions
+
+// CLS: Clear the display
+void Chip8::OP_00E0() {
+  for (int y = 0; y < 32; ++y) {
+    for (int x = 0; x < 64; ++x) {
+      video[y * 64 + x] = 0;
+    }
   }
 }
