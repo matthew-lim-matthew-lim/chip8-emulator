@@ -27,4 +27,16 @@ private:
   // Chip8 instructions
   // CLS
   void OP_00E0();
+
+  // RET
+  void OP_00EE();
+
+  // JP addr
+  void OP_1nnn();
+
+  // CALL addr
+  void OP_2nnn();
+
+  // SE Vx, byte
+  void OP_3xkk();
 };

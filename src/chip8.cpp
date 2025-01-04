@@ -1,6 +1,7 @@
 #include "chip8.h"
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 
 // Chip8 start address is 0x200 for instructions from the ROM
@@ -80,5 +81,49 @@ void Chip8::OP_00E0() {
     for (int x = 0; x < 64; ++x) {
       video[y * 64 + x] = 0;
     }
+  }
+}
+
+// RET: Return from a subroutine
+void Chip8::OP_00EE() {
+  // Decrement SP
+  --sp;
+  // Set PC to top of stack
+  pc = stack[sp];
+}
+
+// JP addr: Jump to location nnn.
+void Chip8::OP_1nnn() {
+  // Mask the opcode with 0x0FFFu to get the 'nnn' address (which is being
+  // jumped to)
+  uint16_t address = opcode & 0x0FFFu;
+  pc = address;
+}
+
+// CALL addr: Call subroutine at nnn.
+void Chip8::OP_2nnn() {
+  // Current PC should point to next instruction. This is because return should
+  // give us the next instruction, not the same call instruction (that would
+  // result in infinite loop).
+
+  // Set top of stack to PC
+  stack[sp] = pc;
+  // Increment SP
+  ++sp;
+
+  uint16_t address = opcode & 0x0FFFu;
+  pc = address;
+}
+
+// SE Vx, byte: Skip next instruction if Vx = kk.
+void Chip8::OP_3xkk() {
+  // Get the register index and the value at the index
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+  // Compare it with kk
+  uint8_t kk = opcode & 0x00FFu;
+  if (Vx == kk) {
+    // Increment program counter by 2 bytes (each instruction is 2 bytes)
+    pc += 2;
   }
 }
