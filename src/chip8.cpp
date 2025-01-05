@@ -1,8 +1,8 @@
 #include "chip8.h"
 #include <chrono>
-#include <cstddef>
 #include <cstdint>
 #include <fstream>
+#include <sys/types.h>
 
 // Chip8 start address is 0x200 for instructions from the ROM
 const unsigned int START_ADDRESS = 0x200;
@@ -167,6 +167,100 @@ void Chip8::OP_7xkk() {
 void Chip8::OP_8xy0() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t y = (opcode & 0x00F0u) >> 4;
+  registers[x] = registers[y];
+}
+
+// OR Vx, Vy: Set Vx = Vx OR Vy.
+void Chip8::OP_8xy1() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t y = (opcode & 0x00F0u) >> 4;
+  registers[x] = registers[x] | registers[y];
+}
+
+// AND Vx, Vy: Set Vx = Vx AND Vy.
+void Chip8::OP_8xy2() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t y = (opcode & 0x00F0u) >> 4;
+  registers[x] = registers[x] & registers[y];
+}
+
+// XOR Vx, Vy: Set Vx = Vx XOR Vy.
+void Chip8::OP_8xy3() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t y = (opcode & 0x00F0u) >> 4;
   uint8_t Vy = registers[y];
-  registers[x] = Vy;
+  registers[x] = registers[x] ^ registers[y];
+}
+
+// ADD Vx, Vy: Set Vx = Vx + Vy, set VF = carry.
+void Chip8::OP_8xy4() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t y = (opcode & 0x00F0u) >> 4;
+  uint16_t sum = registers[x] + registers[y];
+  registers[x] = sum & 0x00FFu; // Mask to get the bottom 8 bits.
+  sum = sum >> 8;
+  registers[15] = sum;
+}
+
+// SUB Vx, Vy: Set Vx = Vx - Vy, set VF = NOT borrow.
+void Chip8::OP_8xy5() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t y = (opcode & 0x00F0u) >> 4;
+  if (registers[x] < registers[y]) {
+    registers[15] = 0;
+  } else {
+    registers[15] = 1;
+  }
+  // Wrap around automatically happens with unsighted values, so simply subtract
+  // Vy from Vx!
+  registers[x] = registers[x] - registers[y];
+}
+
+// SHR Vx {, Vy}: Set Vx = Vx SHR 1.
+void Chip8::OP_8xy6() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  // Set VF to the least significant bit of Vx
+  registers[15] = registers[x] & 1;
+  // Divide Vx by 2 by bit-shifting right.
+  registers[x] = registers[x] >> 1;
+}
+
+// SUBN Vx, Vy: Set Vx = Vy - Vx, set VF = NOT borrow.
+void Chip8::OP_8xy7() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t y = (opcode & 0x00F0u) >> 4;
+  if (registers[y] < registers[x]) {
+    registers[15] = 0;
+  } else {
+    registers[15] = 1;
+  }
+  registers[x] = registers[y] - registers[x];
+}
+
+// SHL Vx {, Vy}: Set Vx = Vx SHL 1.
+void Chip8::OP_8xyE() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  registers[15] = (registers[x] & 0x80u) >> 7;
+  registers[x] = registers[x] << 1;
+}
+
+// LD I, addr: Set I = nnn.
+void Chip8::OP_Annn() {
+  uint16_t nnn = opcode & 0x0FFFu;
+  // 'I' refers to the index register.
+  index = nnn;
+}
+
+// JP V0, addr: Jump to location nnn + V0.
+void Chip8::OP_Bnnn() {
+  uint16_t nnn = opcode & 0x0FFFu;
+  pc = nnn + registers[0];
+}
+
+// RND Vx, byte: Set Vx = random byte AND kk.
+void Chip8::OP_Cxkk() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t rand = randByte(randGen);
+  uint8_t kk = opcode & 0x00FFu;
+  registers[x] = rand & kk;
 }

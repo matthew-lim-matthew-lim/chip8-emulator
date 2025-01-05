@@ -54,4 +54,37 @@ private:
 
   // LD Vx, Vy
   void OP_8xy0();
+
+  // OR Vx, Vy
+  void OP_8xy1();
+
+  // AND Vx, Vy
+  void OP_8xy2();
+
+  // XOR Vx, Vy
+  void OP_8xy3();
+
+  // ADD Vx, Vy
+  void OP_8xy4();
+
+  // SUB Vx, Vy
+  void OP_8xy5();
+
+  // SHR Vx {, Vy}
+  void OP_8xy6();
+
+  // SUBN Vx, Vy
+  void OP_8xy7();
+
+  // SHL Vx {, Vy}
+  void OP_8xyE();
+
+  // LD I, addr
+  void OP_Annn();
+
+  // JP V0, addr:
+  void OP_Bnnn();
+
+  // RND Vx, byte
+  void OP_Cxkk();
 };
