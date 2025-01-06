@@ -264,3 +264,38 @@ void Chip8::OP_Cxkk() {
   uint8_t kk = opcode & 0x00FFu;
   registers[x] = rand & kk;
 }
+
+// DRW Vx, Vy, nibble: Display n-byte sprite starting at memory location I at
+// (Vx, Vy), set VF = collision.
+void Chip8::Dxyn() {
+  // n is the height of the sprite in pixels.
+  // The sprite is 8 pixels wide. This works since Chip8 sprites are always 8
+  // pixels wide.
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+  uint8_t y = (opcode & 0x00F0u) >> 4;
+  uint8_t Vy = registers[y];
+  uint8_t n = opcode & 0x000Fu;
+
+  // Read 'n' bytes from 'index' and write them.
+  registers[15] = 0;
+  for (int i = 0; i < n; ++i) {
+    // Dont need to modulo when we read 'n' bytes from memory.
+    uint8_t spriteByte = memory[index + i];
+
+    for (int j = 0; j < 8; ++j) {
+      // Wrapping in X and Y for the sprite.
+      uint8_t pixelX = (Vx + j) % 64;
+      uint8_t pixelY = (Vy + i) % 32;
+
+      uint32_t spritePixel = (spriteByte >> (7 - j)) & 1;
+      video[64 * pixelY + pixelX] ^= spritePixel;
+
+      // If 'spitePixel && video[64 * pixelY + pixelX]', then the result of the
+      // XOR is 0.
+      if (spritePixel && video[64 * pixelY + pixelX]) {
+        registers[15] = 1;
+      }
+    }
+  }
+}

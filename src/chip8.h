@@ -87,4 +87,7 @@ private:
 
   // RND Vx, byte
   void OP_Cxkk();
+
+  // DRW Vx, Vy, nibble
+  void Dxyn();
 };
