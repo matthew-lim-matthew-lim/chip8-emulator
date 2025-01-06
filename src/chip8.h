@@ -90,4 +90,25 @@ private:
 
   // DRW Vx, Vy, nibble
   void Dxyn();
+
+  // SKP Vx
+  void Ex9E();
+
+  // SKNP Vx
+  void ExA1();
+
+  // LD Vx, DT
+  void Fx07();
+
+  // LD Vx, K
+  void Fx0A();
+
+  // LD DT, Vx
+  void Fx15();
+
+  // LD ST, Vx
+  void Fx18();
+
+  // ADD I, Vx
+  void Fx1E();
 };

@@ -299,3 +299,94 @@ void Chip8::Dxyn() {
     }
   }
 }
+
+// SKP Vx: Skip next instruction if key with the value of Vx is pressed.
+void Chip8::Ex9E() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+  if (keypad[Vx]) {
+    pc += 2;
+  }
+}
+
+// SKNP Vx: Skip next instruction if key with the value of Vx is not pressed.
+void Chip8::ExA1() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+  if (!keypad[Vx]) {
+    pc += 2;
+  }
+}
+
+// LD Vx, DT: Set Vx = delay timer value.
+void Chip8::Fx07() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  registers[x] = delayTimer;
+}
+
+// LD Vx, K: Wait for a key press, store the value of the key in Vx.
+void Chip8::Fx0A() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+
+  // 'wait' by decrementing the PC by 2 whenever a keypad value is not detected.
+  // This makes the same instruction run repeatedly (which has wait behaviour).
+  if (keypad[0]) {
+    registers[x] = 0;
+  } else if (keypad[1]) {
+    registers[x] = 1;
+  } else if (keypad[2]) {
+    registers[x] = 2;
+  } else if (keypad[3]) {
+    registers[x] = 3;
+  } else if (keypad[4]) {
+    registers[x] = 4;
+  } else if (keypad[5]) {
+    registers[x] = 5;
+  } else if (keypad[6]) {
+    registers[x] = 6;
+  } else if (keypad[7]) {
+    registers[x] = 7;
+  } else if (keypad[8]) {
+    registers[x] = 8;
+  } else if (keypad[9]) {
+    registers[x] = 9;
+  } else if (keypad[10]) {
+    registers[x] = 10;
+  } else if (keypad[11]) {
+    registers[x] = 11;
+  } else if (keypad[12]) {
+    registers[x] = 12;
+  } else if (keypad[13]) {
+    registers[x] = 13;
+  } else if (keypad[14]) {
+    registers[x] = 14;
+  } else if (keypad[15]) {
+    registers[x] = 15;
+  } else {
+    pc -= 2;
+  }
+}
+
+// LD DT, Vx: Set delay timer = Vx.
+void Chip8::Fx15() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+
+  delayTimer = Vx;
+}
+
+// LD ST, Vx: Set sound timer = Vx.
+void Chip8::Fx18() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+
+  soundTimer = Vx;
+}
+
+// ADD I, Vx: Set I = I + Vx.
+void Chip8::Fx1E() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+
+  index = index + Vx;
+}
