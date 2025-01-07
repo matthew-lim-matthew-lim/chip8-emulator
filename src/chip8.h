@@ -111,4 +111,16 @@ private:
 
   // ADD I, Vx
   void Fx1E();
+
+  // LD F, Vx
+  void Fx29();
+
+  // LD B, Vx
+  void Fx33();
+
+  // LD [I], Vx
+  void Fx55();
+
+  // LD Vx, [I]
+  void Fx65();
 };

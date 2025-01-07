@@ -390,3 +390,38 @@ void Chip8::Fx1E() {
 
   index = index + Vx;
 }
+
+// LD F, Vx: Set I = location of sprite for digit Vx.
+void Chip8::Fx29() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+
+  index = Vx * 5 + FONTSET_START_ADDRESS;
+}
+
+// LD B, Vx: Store BCD representation of Vx in memory locations I, I+1, and I+2.
+void Chip8::Fx33() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+  memory[index] = Vx / 100;
+  memory[index + 1] = Vx / 10 % 10;
+  memory[index + 2] = Vx % 10;
+}
+
+// LD [I], Vx: Store registers V0 through Vx in memory starting at location I.
+void Chip8::Fx55() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+
+  for (int i = 0; i <= x; ++i) {
+    memory[index + i] = registers[i];
+  }
+}
+
+// LD Vx, [I]
+void Chip8::Fx65() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+
+  for (int i = 0; i <= x; ++i) {
+    registers[i] = memory[index + i];
+  }
+}
