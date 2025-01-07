@@ -6,6 +6,8 @@ public:
   Chip8();                            // Constructor
   void LoadROM(char const *filename); // Load a ROM into memory
 
+  void Cycle();
+
 private:
   // Chip8 class members - Components of Chip8
   uint8_t registers[16]{};
@@ -79,6 +81,9 @@ private:
   // SHL Vx {, Vy}
   void OP_8xyE();
 
+  // SNE Vx, Vy
+  void OP_9xy0();
+
   // LD I, addr
   void OP_Annn();
 
@@ -89,38 +94,54 @@ private:
   void OP_Cxkk();
 
   // DRW Vx, Vy, nibble
-  void Dxyn();
+  void OP_Dxyn();
 
   // SKP Vx
-  void Ex9E();
+  void OP_Ex9E();
 
   // SKNP Vx
-  void ExA1();
+  void OP_ExA1();
 
   // LD Vx, DT
-  void Fx07();
+  void OP_Fx07();
 
   // LD Vx, K
-  void Fx0A();
+  void OP_Fx0A();
 
   // LD DT, Vx
-  void Fx15();
+  void OP_Fx15();
 
   // LD ST, Vx
-  void Fx18();
+  void OP_Fx18();
 
   // ADD I, Vx
-  void Fx1E();
+  void OP_Fx1E();
 
   // LD F, Vx
-  void Fx29();
+  void OP_Fx29();
 
   // LD B, Vx
-  void Fx33();
+  void OP_Fx33();
 
   // LD [I], Vx
-  void Fx55();
+  void OP_Fx55();
 
   // LD Vx, [I]
-  void Fx65();
+  void OP_Fx65();
+
+  // Do nothing - Default function table function.
+  void OP_NULL();
+
+  // Declare the function pointer table and subtables
+  void Table0();
+  void Table8();
+  void TableE();
+  void TableF();
+
+  typedef void (Chip8::*Chip8Func)();
+  Chip8Func table[0xF + 1];
+  Chip8Func table0[0xE + 1];
+  Chip8Func table8[0xE + 1];
+  Chip8Func tableE[0xE + 1];
+  Chip8Func tableF[0x65 + 1];
 };

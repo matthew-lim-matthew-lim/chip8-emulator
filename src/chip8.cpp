@@ -45,6 +45,63 @@ Chip8::Chip8()
   // Initialise distribution which we will use with the random number generator
   // using randByte(randGen)
   randByte = std::uniform_int_distribution<uint8_t>(0, 255U);
+
+  // Set up function pointer table and subtables.
+  // Set main table, which indexes on the first opcode digit.
+  table[0x0] = &Chip8::Table0;
+  table[0x1] = &Chip8::OP_1nnn;
+  table[0x2] = &Chip8::OP_2nnn;
+  table[0x3] = &Chip8::OP_3xkk;
+  table[0x4] = &Chip8::OP_4xkk;
+  table[0x5] = &Chip8::OP_5xy0;
+  table[0x6] = &Chip8::OP_6xkk;
+  table[0x7] = &Chip8::OP_7xkk;
+  table[0x8] = &Chip8::Table8;
+  table[0x9] = &Chip8::OP_9xy0;
+  table[0xA] = &Chip8::OP_Annn;
+  table[0xB] = &Chip8::OP_Bnnn;
+  table[0xC] = &Chip8::OP_Cxkk;
+  table[0xD] = &Chip8::OP_Dxyn;
+  table[0xE] = &Chip8::TableE;
+  table[0xF] = &Chip8::TableF;
+
+  // Set default pointer of subtables to OP_NULL.
+  for (size_t i = 0; i <= 0xE; i++) {
+    table0[i] = &Chip8::OP_NULL;
+    table8[i] = &Chip8::OP_NULL;
+    tableE[i] = &Chip8::OP_NULL;
+  }
+
+  // Set subtables which index on the remainder of the opcode.
+  table0[0x0] = &Chip8::OP_00E0;
+  table0[0xE] = &Chip8::OP_00EE;
+
+  table8[0x0] = &Chip8::OP_8xy0;
+  table8[0x1] = &Chip8::OP_8xy1;
+  table8[0x2] = &Chip8::OP_8xy2;
+  table8[0x3] = &Chip8::OP_8xy3;
+  table8[0x4] = &Chip8::OP_8xy4;
+  table8[0x5] = &Chip8::OP_8xy5;
+  table8[0x6] = &Chip8::OP_8xy6;
+  table8[0x7] = &Chip8::OP_8xy7;
+  table8[0xE] = &Chip8::OP_8xyE;
+
+  tableE[0x1] = &Chip8::OP_ExA1;
+  tableE[0xE] = &Chip8::OP_Ex9E;
+
+  for (size_t i = 0; i <= 0x65; i++) {
+    tableF[i] = &Chip8::OP_NULL;
+  }
+
+  tableF[0x07] = &Chip8::OP_Fx07;
+  tableF[0x0A] = &Chip8::OP_Fx0A;
+  tableF[0x15] = &Chip8::OP_Fx15;
+  tableF[0x18] = &Chip8::OP_Fx18;
+  tableF[0x1E] = &Chip8::OP_Fx1E;
+  tableF[0x29] = &Chip8::OP_Fx29;
+  tableF[0x33] = &Chip8::OP_Fx33;
+  tableF[0x55] = &Chip8::OP_Fx55;
+  tableF[0x65] = &Chip8::OP_Fx65;
 }
 
 void Chip8::LoadROM(char const *filename) {
@@ -70,6 +127,41 @@ void Chip8::LoadROM(char const *filename) {
 
     // Free the buffer
     delete[] buffer;
+  }
+}
+
+// Decode Opcode instruction using Function pointer table
+
+void Chip8::Table0() { ((*this).*(table0[opcode & 0x000Fu]))(); }
+
+void Chip8::Table8() { ((*this).*(table8[opcode & 0x000Fu]))(); }
+
+void Chip8::TableE() { ((*this).*(tableE[opcode & 0x000Fu]))(); }
+
+void Chip8::TableF() { ((*this).*(tableF[opcode & 0x00FFu]))(); }
+
+// Chip8 Cycle
+void Chip8::Cycle() {
+  // Fetch next instruction
+  opcode = (memory[pc] << 8) | memory[pc + 1];
+
+  // Increment PC before we execute
+  pc += 2;
+
+  // Decode the instruction to determine what operation needs to occur
+  uint8_t opcodeIndex1 = (opcode & 0xF000u) >> 12;
+
+  // Find the corresponding table and then execute.
+  ((*this).*(table[opcodeIndex1]))();
+
+  // Decrement delay timer
+  if (delayTimer > 0) {
+    --delayTimer;
+  }
+
+  // Decrement sound time
+  if (soundTimer > 0) {
+    --soundTimer;
   }
 }
 
@@ -244,6 +336,17 @@ void Chip8::OP_8xyE() {
   registers[x] = registers[x] << 1;
 }
 
+// SNE Vx, Vy: Skip next instruction if Vx != Vy.
+void Chip8::OP_9xy0() {
+  uint8_t x = (opcode & 0x0F00u) >> 8;
+  uint8_t Vx = registers[x];
+  uint8_t y = (opcode & 0x00F0u) >> 4;
+  uint8_t Vy = registers[y];
+  if (Vx != Vy) {
+    pc += 2;
+  }
+}
+
 // LD I, addr: Set I = nnn.
 void Chip8::OP_Annn() {
   uint16_t nnn = opcode & 0x0FFFu;
@@ -267,7 +370,7 @@ void Chip8::OP_Cxkk() {
 
 // DRW Vx, Vy, nibble: Display n-byte sprite starting at memory location I at
 // (Vx, Vy), set VF = collision.
-void Chip8::Dxyn() {
+void Chip8::OP_Dxyn() {
   // n is the height of the sprite in pixels.
   // The sprite is 8 pixels wide. This works since Chip8 sprites are always 8
   // pixels wide.
@@ -301,7 +404,7 @@ void Chip8::Dxyn() {
 }
 
 // SKP Vx: Skip next instruction if key with the value of Vx is pressed.
-void Chip8::Ex9E() {
+void Chip8::OP_Ex9E() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t Vx = registers[x];
   if (keypad[Vx]) {
@@ -310,7 +413,7 @@ void Chip8::Ex9E() {
 }
 
 // SKNP Vx: Skip next instruction if key with the value of Vx is not pressed.
-void Chip8::ExA1() {
+void Chip8::OP_ExA1() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t Vx = registers[x];
   if (!keypad[Vx]) {
@@ -319,13 +422,13 @@ void Chip8::ExA1() {
 }
 
 // LD Vx, DT: Set Vx = delay timer value.
-void Chip8::Fx07() {
+void Chip8::OP_Fx07() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   registers[x] = delayTimer;
 }
 
 // LD Vx, K: Wait for a key press, store the value of the key in Vx.
-void Chip8::Fx0A() {
+void Chip8::OP_Fx0A() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
 
   // 'wait' by decrementing the PC by 2 whenever a keypad value is not detected.
@@ -368,7 +471,7 @@ void Chip8::Fx0A() {
 }
 
 // LD DT, Vx: Set delay timer = Vx.
-void Chip8::Fx15() {
+void Chip8::OP_Fx15() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t Vx = registers[x];
 
@@ -376,7 +479,7 @@ void Chip8::Fx15() {
 }
 
 // LD ST, Vx: Set sound timer = Vx.
-void Chip8::Fx18() {
+void Chip8::OP_Fx18() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t Vx = registers[x];
 
@@ -384,7 +487,7 @@ void Chip8::Fx18() {
 }
 
 // ADD I, Vx: Set I = I + Vx.
-void Chip8::Fx1E() {
+void Chip8::OP_Fx1E() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t Vx = registers[x];
 
@@ -392,7 +495,7 @@ void Chip8::Fx1E() {
 }
 
 // LD F, Vx: Set I = location of sprite for digit Vx.
-void Chip8::Fx29() {
+void Chip8::OP_Fx29() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t Vx = registers[x];
 
@@ -400,7 +503,7 @@ void Chip8::Fx29() {
 }
 
 // LD B, Vx: Store BCD representation of Vx in memory locations I, I+1, and I+2.
-void Chip8::Fx33() {
+void Chip8::OP_Fx33() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t Vx = registers[x];
   memory[index] = Vx / 100;
@@ -409,7 +512,7 @@ void Chip8::Fx33() {
 }
 
 // LD [I], Vx: Store registers V0 through Vx in memory starting at location I.
-void Chip8::Fx55() {
+void Chip8::OP_Fx55() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
 
   for (int i = 0; i <= x; ++i) {
@@ -418,10 +521,13 @@ void Chip8::Fx55() {
 }
 
 // LD Vx, [I]
-void Chip8::Fx65() {
+void Chip8::OP_Fx65() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
 
   for (int i = 0; i <= x; ++i) {
     registers[i] = memory[index + i];
   }
 }
+
+// Do nothing - Default function table function.
+void OP_NULL() {}
