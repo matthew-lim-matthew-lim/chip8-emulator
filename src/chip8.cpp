@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdint>
 #include <fstream>
+#include <iostream>
 #include <sys/types.h>
 
 // Chip8 start address is 0x200 for instructions from the ROM
@@ -124,6 +125,8 @@ void Chip8::LoadROM(char const *filename) {
     for (long i = 0; i < size; ++i) {
       memory[START_ADDRESS + i] = buffer[i];
     }
+
+    std::cout << "ROM loaded, size: " << size << " bytes\n";
 
     // Free the buffer
     delete[] buffer;
@@ -280,7 +283,6 @@ void Chip8::OP_8xy2() {
 void Chip8::OP_8xy3() {
   uint8_t x = (opcode & 0x0F00u) >> 8;
   uint8_t y = (opcode & 0x00F0u) >> 4;
-  uint8_t Vy = registers[y];
   registers[x] = registers[x] ^ registers[y];
 }
 
@@ -392,12 +394,18 @@ void Chip8::OP_Dxyn() {
       uint8_t pixelY = (Vy + i) % 32;
 
       uint32_t spritePixel = (spriteByte >> (7 - j)) & 1;
-      video[64 * pixelY + pixelX] ^= spritePixel;
 
-      // If 'spitePixel && video[64 * pixelY + pixelX]', then the result of the
-      // XOR is 0.
-      if (spritePixel && video[64 * pixelY + pixelX]) {
-        registers[15] = 1;
+      uint32_t &oldPixel = video[pixelY * 64 + pixelX];
+
+      // Check collision: if oldPixel is white (0xFFFFFFFF) and we're about to
+      // draw a "1"
+      if (spritePixel && (oldPixel == 0xFFFFFFFF)) {
+        registers[0xF] = 1;
+      }
+
+      // Toggle: if it was white, turn it black; if black, turn it white
+      if (spritePixel) {
+        oldPixel = (oldPixel == 0xFFFFFFFF) ? 0xFF000000 : 0xFFFFFFFF;
       }
     }
   }
@@ -530,4 +538,4 @@ void Chip8::OP_Fx65() {
 }
 
 // Do nothing - Default function table function.
-void OP_NULL() {}
+void Chip8::OP_NULL() {}
